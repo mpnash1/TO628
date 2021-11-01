@@ -1,0 +1,228 @@
+---
+title: "Homework Assignment 1"
+author: "Matt Nash & Mike Hixon"
+date: 'Due EoD Sun Oct 31, 2021'
+output:
+  html_document:
+    toc: true
+    code_folding: show
+  pdf_document: default
+---
+
+## HW-1 Instructions
+
+> Our class emphasizes clear communication of data analysis results to non-technical audiences. I expect your HTML output documents to be readable and well formatted. I expect you to put ample comments in your R code to make the code understandable. Along with accuracy of results, I am looking for quality of presentation as well. To complete this assignment, follow these steps:
+
+1. Download the `HW1.Rmd` file from Canvas. 
+
+3. Open `HW1.Rmd` in RStudio. Replace the "Your Name Here" text in the `author:` field with your name.
+
+4. Supply your solutions to the homework by editing `HW1.Rmd`.
+
+5. Run your code in the Console and Knit HTML frequently to check for errors.
+
+6. You may find it easier to solve a problem by interacting only with the Console at first. 
+
+7. When you have completed the homework please check that your knits correctly when you click `Knit HTML`.
+
+8. Submit your RMD file and the HTML output.
+
+
+## Data frame basics
+
+We will work with the nycflights dataset. **Please be sure to keep the data file in the same directory as the RMD file - your project directory.** and make that directory the working directory.
+
+First - make sure that you are reading the data correctly and doing all the data cleaning steps that we did in class. Feel free to go beyond our class work in cleaning the data if you feel the need. 
+
+
+```{r, cache=TRUE}
+#Reading and exploring data
+nyc = read.csv("nycflights.csv")
+head(nyc, n = 10)
+str(nyc)
+summary(nyc)
+```
+### Cleaning Data
+```{r}
+#Delete Unneccesary Columns
+nyc$X = NULL
+nyc$year = NULL
+```
+
+
+```{r}
+#Factorized Columns
+#flight, carrier, origin, dest, tailnum, month
+nyc$flight = as.factor(nyc$flight)
+nyc$carrier = as.factor(nyc$carrier)
+nyc$dest = as.factor(nyc$dest)
+nyc$tailnum = as.factor(nyc$tailnum)
+nyc$month = as.factor(nyc$month)
+nyc$origin = as.factor(nyc$origin)
+
+nyc$flightDate = as.Date(nyc$time_hour, format = "%Y-%m-%d %H:%M:%S")
+
+str(nyc)
+
+```
+
+
+
+
+
+I now would like you to answer the following - all in their own separate R code blocks.
+
+### Data Exploration
+
+Let's first do some simple exploration of this data. 
+
+- How many airlines are there? (Hint: `levels` and `length` can be useful here)
+
+###How many airlines are there?
+```{r}
+numberOfAirlines = nlevels(nyc$carrier)
+numberOfAirlines
+
+```
+
+
+- How many flights there were by the airline with code `OO`? (Hint: `nrow` can be useful here along with logical indexing)
+
+```{r}
+nyc00 = nyc[nyc$carrier =="OO",]
+nrow(nyc00)
+```
+
+
+- How long is the shortest flight out of any NYC airport? (Hint: `min` can be useful, remember to handle `NA` values)
+
+```{r}
+min(nyc$air_time, na.rm = TRUE)
+```
+
+
+- How many flights where there by United Airlines (code: UA) on Jan 12th 2013?
+
+```{r}
+nrow(nyc[nyc$carrier == "UA" & nyc$month == 1 & nyc$day == 12,])
+```
+
+
+### Arrival Delay
+
+Lets focus on Arrival Delay.
+
+- What was the average arrival delay for all airports and all airlines combined in 2013? 
+
+```{r}
+mean(nyc$arr_delay, na.rm = TRUE,0)
+
+
+```
+
+
+- Whats was the median arrival delay for all airports and all airlines combined in 2013?
+
+```{r}
+median(nyc$arr_delay, na.rm = TRUE)
+
+```
+
+
+Based on your answers to the two questions above, what can you say about the distribution of arrival delays? Provide your answer in a text paragraph form.
+
+Most flights get in on time but some flights have large delays which skews the mean
+
+### Airline Performance
+
+Lets see if all airlines are equally terrible as far as flight arrival delays are concerned. For this question you will have to make sure that airline column is coded as a factor.
+
+- Calculate average arrival delays by airline (Hint: look up the command `tapply`)
+
+```{r}
+arr_delay_by_airline = tapply(nyc$arr_delay, nyc$carrier, mean, na.rm = TRUE)
+round(arr_delay_by_airline, 2)
+
+```
+
+
+- Draw a Bar Plot of Average Arrival Delays for all the Airlines (Hint: command for making a Bar Plot is simply `barplot`)
+
+```{r}
+barplot(sort(arr_delay_by_airline), las = 2)
+```
+
+
+- Which airline has the highest average arrival delay? Which airline has the smallest average arrival delay? Are there airlines that actually have negative average delay? Provide answer to this question in a text paragraph form using **inline R code**.
+
+```{r}
+maxDelay = max(arr_delay_by_airline)
+
+minDelay = min(arr_delay_by_airline)
+
+names(arr_delay_by_airline[arr_delay_by_airline == maxDelay])
+names(arr_delay_by_airline[arr_delay_by_airline == minDelay])
+
+```
+The airline with the largest arrival delay is: `r names(arr_delay_by_airline[arr_delay_by_airline == maxDelay])`
+
+The airline with the smallest arrival delay is: `r names(arr_delay_by_airline[arr_delay_by_airline == minDelay])`
+
+### Air Gain
+
+Create a new column named airgain such that airgain = (departure delay - arrival delay) : this is the amount of delay a flight made up while in air.
+
+```{r}
+nyc["airgain"] = nyc$dep_delay - nyc$arr_delay
+
+```
+
+
+a) Explore airgain data - calculate suitable descriptive statistics and appropriate graphics to better understand this data. This part is open ended - you do what you feel works best for you.
+
+```{r}
+airGainByAirline = tapply(nyc$airgain, nyc$carrier, mean, na.rm = TRUE)
+airGainByAirline
+plot(airGainByAirline)
+axis(1, at = 1:length(names(airGainByAirline)), labels = names(airGainByAirline), las=2)
+
+```
+
+
+b) Answer the questions:
+
+  - do airlines actually gain any time when in air on average? 
+  
+```{r}
+
+gainTime = airGainByAirline[airGainByAirline > 0]
+```
+  
+  
+  Yes some do, from the plot above you can see the following airlines gain time on average: `r names(gainTime)`
+  
+
+  - Calculate average airgain for different airlines - which airlines do a better job, which do a worse job? 
+  
+
+  
+
+The airline that does the best is:  `r names(gainTime[gainTime == max(gainTime)])`
+
+The airline that does the worst is: `r names(airGainByAirline[airGainByAirline == min(airGainByAirline)])`
+
+
+### Making Your HTML Look Nice
+
+We want our report to be good looking, professional documents. To that end, I am asking you to do the following:
+
+- Have a floating table of contents
+
+- Include code folding in your output. You can find more about code folding here: https://bookdown.org/yihui/rmarkdown/html-document.html#code-folding
+
+
+That's it. Once you are done, make sure everything works and knits well and then you can push your changes to the GitHub repo and uplaod the RMD flile and the html output to Canvas.
+
+**Have Fun!**
+
+Sanjeev
